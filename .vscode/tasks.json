@@ -1,0 +1,58 @@
+{
+    "tasks": [
+        {
+            "label": "build-test",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build", "${workspaceFolder}/build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": ["relative", "${workspaceFolder}/build"],
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            // "dependsOn": ["build-test-conf"],
+        },
+
+        {
+            "label": "build-test-mkdir",
+            "type": "shell",
+            "command": "mkdir",
+            "args": ["-p", "build"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+
+        },
+        {
+            "label": "build-test-conf",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["-DCMAKE_BUILD_TYPE=Debug", "-GNinja", "${workspaceFolder}"],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "group": "build",
+            "dependsOn": ["build-test-mkdir"],
+
+        }
+
+    ],
+    "version": "2.0.0",
+}
