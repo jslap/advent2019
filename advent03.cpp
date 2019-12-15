@@ -9,8 +9,6 @@
 
 
 
-using s32 = std::int32_t;
-using u8 = std::uint8_t;
 
 enum class Dir : u8  {Right, Left, Up, Down};
 class Move

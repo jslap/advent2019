@@ -1,3 +1,6 @@
+#ifndef _ADVENTUTIL__H
+#define _ADVENTUTIL__H
+
 #include <fstream>
 #include <iostream>
 
@@ -16,10 +19,14 @@
 
 #include "absl/numeric/int128.h"
 #include "absl/strings/str_split.h"
-
+#define RANGES_ASSERT(...) void(0)
 #include <range/v3/all.hpp>
 
 using BigInt = absl::uint128;
+
+using s64 = std::int64_t;
+using u8 = std::uint8_t;
+using s32 = std::int32_t;
 
 namespace fmt
 {
@@ -77,7 +84,17 @@ public:
     }
 };
 
-std::string fromFile(const std::string &fileName)
+constexpr int myPow(int x, int p)
+{
+  if (p == 0) return 1;
+  if (p == 1) return x;
+
+  int tmp = myPow(x, p/2);
+  if (p%2 == 0) return tmp * tmp;
+  else return x * tmp * tmp;
+}
+
+inline std::string fromFile(const std::string &fileName)
 {
 
     std::ifstream ifs(fileName);
@@ -86,7 +103,9 @@ std::string fromFile(const std::string &fileName)
     return srcStr;
 }
 
-int AdventStoi(std::string const & s)
+inline s64 AdventStoi(std::string const & s)
 {
-    return std::stoi(s);
+    return std::stoll(s);
 }
+
+#endif //_ADVENTUTIL__H

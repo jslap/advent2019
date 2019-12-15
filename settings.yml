@@ -1,0 +1,51 @@
+# Only for cross building, 'os_build/arch_build' is the system that runs Conan
+os_build: [Linux]
+arch_build: [x86_64]
+
+# Rest of the settings are "host" settings:
+# - For native building/cross building: Where the library/program will run.
+arch: ["x86_64", "arm64-v8a", "tx2"]
+build_type: [Release, Debug]
+
+os:
+  Ubuntu:
+    version: ["18.04"]
+  Yocto:
+    version: ["2.5"]
+  Android:
+    # Corresponds to the minimum SDK version supported. e.g. 24 is Android 7.0 and up
+    version: ["24"]
+  QNX:
+    version: [""]
+  OSX:
+    version: [""]
+  Windows:
+    version: ["10"]
+
+compiler:
+    gcc:
+        version: ["4.1", "4.4", "4.5", "4.6", "4.7", "4.8", "4.9",
+                "5", "5.1", "5.2", "5.3", "5.4", "5.5",
+                "6", "6.1", "6.2", "6.3", "6.4",
+                "7", "7.1", "7.2", "7.3",
+                "8", "8.1", "8.2",
+                "9"]
+        libcxx: [libstdc++, libstdc++11]
+        threads: [None, posix, win32] #  Windows MinGW
+        exception: [None, dwarf2, sjlj, seh] # Windows MinGW
+        cppstd: [None, 98, gnu98, 11, gnu11, 14, gnu14, 17, gnu17, 20, gnu20]
+    
+os_family: ["Unix", "Windows"]
+os_type: ["", "Linux", "Android", "QNX", "OSX"]
+os_distro: ["", "Ubuntu", "Yocto"]
+
+cxx_standard: [14, 17]
+cxx_flags: ANY
+cxx_flags_debug: ANY
+cxx_flags_release: ANY
+cxx_flags_coverage: ANY
+
+link_flags: ANY
+link_flags_debug: ANY
+link_flags_release: ANY
+link_flags_coverage: ANY
