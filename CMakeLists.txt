@@ -16,7 +16,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_compile_options (-fcolor-diagnostics)
 endif ()
 
-add_executable(my_exe advent10.cpp intMachine.cpp)
+add_executable(my_exe advent14.cpp intMachine.cpp)
 
 set_property(TARGET my_exe PROPERTY CXX_STANDARD 17)
 

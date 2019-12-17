@@ -56,8 +56,19 @@ class Point
     Point getAngleTo(Point const & other) const
     {
         Point diff{other - *this};
+        if (diff.x == 0 && diff.y == 0)
+            return {0, 0};
+        if (diff.x == 0)
+            return {0, std::signbit(diff.y) ? -1 : 1};
+        if (diff.y == 0)
+            return {std::signbit(diff.x) ? -1 : 1, 0};
         auto theDiv = std::gcd(diff.x, diff.y);
         return diff/theDiv;
+    }
+    double angle() const
+    {
+        // fmt::print("angle of ({},{}) -> {}\n",x,y,std::atan2<double>(y, x));
+        return std::atan2<double>(y, x);
     }
 
     s32 x{};
@@ -114,10 +125,60 @@ class Grid
         }
         Point center;
     };
+    class VisMapComp
+    {
+        public:
+        // get signs, order: (T,T), (T,F), (F,F), (F,T)
+        // if same sign, 
+        VisMapComp() = default;
+        bool normOperator(Point const & lhs, Point const & rhs) const
+        {
+            // if (lhs.x == 0 && rhs.x == 0)
+            //     return (lhs.y < 0 && rhs.y > 0);
+            // if (lhs.x == 0)
+
+            if ( ((lhs.x < 0) == (rhs.x < 0))  && ((lhs.y < 0) == (rhs.y < 0)))
+                return (lhs.angle() < rhs.angle());
+            if (lhs.x < 0)
+            {
+                if (rhs.x < 0)
+                {
+                    return (lhs.y >= 0);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (rhs.x < 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    return (lhs.y < 0);
+                }
+            }
+            // return (lhs-center).angle() < (rhs-center).angle();
+        }
+        bool operator()(Point const & lhs, Point const & rhs) const
+        {
+            if (lhs == rhs) 
+                return false;
+            // fmt::print("lhs: {} , rhs: {} -> {}\n", lhs, rhs, normOperator(lhs, rhs));
+            return normOperator(lhs, rhs);
+        }
+    };
+
     class ViewMap2
     {
         public:
-        ViewMap2(Point const & _center): center{_center} {};
+        ViewMap2(Point const & _center): 
+            center{_center},
+            m{}
+            {};
 
         void add(std::vector<Point> const & pVec)
         {
@@ -126,6 +187,7 @@ class Grid
         }
         void add(Point const & p)
         {
+            // fmt::print("adding {} ...\n", p);
             if (p != center)
             {
                 nbPoint++;
@@ -134,8 +196,9 @@ class Grid
                 if (it == m.end())
                     m.emplace(curAngle, VisSet2{{p}, VisSetComp{center}});
                 else
-                    it->second.emplace(p);
+                    it->second.insert(p);
             }
+            // fmt::print("adding {} -> {}\n", p, m);
         }
         s32 nbAngle() const
         {
@@ -149,45 +212,38 @@ class Grid
         }
         Point nth(s32 n) const 
         {
-            return *m.cbegin()->second.cbegin();
+            using namespace ranges;
+            return *(m | view::values | view::transform([](auto const & s){return *s.begin();}) | view::drop_exactly(n)).begin();
+            // return *m.cbegin()->second.cbegin();
         }
 
         s32 nbVisible() const
         {
-            using namespace ranges;
-            s32 nbNotVis = accumulate(m | views::values, 0, [](s32 prevRes, VisSet2 const & curVisSet){
-                return prevRes + (curVisSet.size() > 1 ? curVisSet.size()-1 : 0);
-            } );
-            return nbPoint - nbNotVis;
+            return m.size() ;
         }
 
         Point center{};
         s32 nbPoint{0};
         using VisSet2 = std::set<Point, VisSetComp>;
-        using Map = std::map<Point, VisSet2>;
-        Map m{};
+        using Map = std::map<Point, VisSet2, VisMapComp>;
+        Map m;
     };
-    using VisSet = std::set<Point>;
-    using ViewMap = std::map<Point, VisSet>;
-    ViewMap genMap(Point const &from) const
+
+    Point findBestNthZap(s32 nth)
     {
-        ViewMap visMap;
-        for (auto const & curAst : points)
-        {
-            if (curAst != from)
-            {
-                Point curAngle = from.getAngleTo(curAst);
-                visMap[curAngle].emplace(curAst);
-            }
-        }
-        return visMap;
+        using namespace ranges;
+        Point bestPoint = ranges::max(points, std::less<s32>{},  [this](Point const & p )  {return nbVisible(p);});
+        // fmt::print("found {} at  {} \n", bestPoint, nbVisible(bestPoint));
+        return findNthZap(bestPoint, nth);
     }
 
     Point findNthZap(Point const &from, s32 nth)
     {
+        nth--; // non-zero-based
+
         ViewMap2 visMap2(from);
         visMap2.add(points);
-        while (nth > visMap2.nbAngle())
+        while (nth >= visMap2.nbAngle())
         {
             nth -= visMap2.nbAngle();
             visMap2.oneRevolution();
@@ -199,6 +255,7 @@ class Grid
     {
         ViewMap2 visMap2(from);
         visMap2.add(points);
+        // fmt::print("nbVisible for {} is {}\n", from, visMap2.nbVisible());
         return visMap2.nbVisible();
     }
     std::vector<Point> points;
@@ -208,6 +265,24 @@ int main()
 {
     Tester t;
     t.expectTest(42, 42);
+
+    t.expectTest(Grid::VisMapComp{}(Point{0,-1}, Point{1,-1}), true);
+
+    std::vector<Point> testVec = {{0,-1}, {1,-1},{1,0}, {1,1}, {0,1}, {-1,1}, {-1,0}, {-1,-1}};
+    for (auto it1 = testVec.begin(); it1 != testVec.end(); ++it1)
+        for (auto it2 = it1; it2 != testVec.end(); ++it2)
+        {
+            if (*it1 != *it2)
+            {
+                t.expectTest(Grid::VisMapComp{}(*it1, *it2), true);
+                t.expectTest(Grid::VisMapComp{}(*it2, *it1), false);
+            }
+            else
+            {
+                t.expectTest(Grid::VisMapComp{}(*it1, *it2), false);
+                t.expectTest(Grid::VisMapComp{}(*it2, *it1), false);                
+            }
+        }
 
 
     t.expectTest(Point(0,0).getAngleTo(Point{1,1}), Point(1,1));
@@ -227,7 +302,29 @@ int main()
     t.expectTest(Grid{fromFile("../dec10_fin.txt")}.maxVisible(), 347);
 
     t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 1), Point(8,1));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 2), Point(9,0));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 3), Point(9,1));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 4), Point(10,0));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 9), Point(15,1));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 14), Point(12,3));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 30), Point(7,0));
+    t.expectTest(Grid{fromFile("../dec10_4.txt")}.findNthZap(Point(8,3), 31), Point(8,0));
 
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 1), Point(11,12));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 2), Point(12,1));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 3), Point(12,2));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 10), Point(12,8));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 20), Point(16,0));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 50), Point(16,9));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 100), Point(10,16));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 199), Point(9,6));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 200), Point(8,2));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 201), Point(10,9));
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findNthZap(Point(11,13), 299), Point(11,1));
+
+    t.expectTest(Grid{fromFile("../dec10_3.txt")}.findBestNthZap(200), Point(8,2));
+
+    t.expectTest(Grid{fromFile("../dec10_fin.txt")}.findBestNthZap(200), Point(8,2));
 
     return 1;
 }

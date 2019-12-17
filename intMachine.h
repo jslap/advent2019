@@ -51,6 +51,23 @@ public:
         return *this;
     }
 
+    void runUntillOutput(u32 outputSize)
+    {
+        while (!isFinal() && output.size() < outputSize)
+        {
+            advance();
+        }
+    }
+
+    void runUntillAskInput()
+    {
+        while (!isFinal() && !(isInput() && input.empty()))
+        {
+            advance();
+        }
+
+    }
+
     s64 runUntillOutput()
     {
         while (!isFinal() && !isOutput())
@@ -99,9 +116,14 @@ public:
         Input = 3, Output = 4, 
         JumpIf = 5, JumpIfNot = 6, 
         IsLess = 7, IsEqual = 8,
-        AdjRelBase = 9
+        AdjRelBase = 9,
+        Halt = 99
     };
 
+    Opcode getOpcode() const
+    {
+        return Opcode{static_cast<u8>(inst[curPos] % 100)};
+    }
     State& advance()
     {
         if (isFinal())
@@ -109,9 +131,7 @@ public:
             throw std::logic_error{"cannot advance final"};
         }
 
-        s64 firstInstruction = inst[curPos];
-        Opcode curOp = Opcode{static_cast<u8>(firstInstruction % 100)};
-
+        Opcode curOp = getOpcode();
         switch (curOp)
         {
             case Opcode::Add:
@@ -193,11 +213,15 @@ public:
     }
     bool isOutput() const
     {
-        return Opcode(inst[curPos]) == Opcode::Output;
+        return getOpcode() == Opcode::Output;
+    }
+    bool isInput() const
+    {
+        return getOpcode() == Opcode::Input;
     }
     bool isFinal() const
     {
-        return inst[curPos] == 99;
+        return getOpcode() == Opcode::Halt;
     }
     void clearOutput()
     {

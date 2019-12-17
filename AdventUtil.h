@@ -27,6 +27,7 @@ using BigInt = absl::uint128;
 using s64 = std::int64_t;
 using u8 = std::uint8_t;
 using s32 = std::int32_t;
+using u32 = std::uint32_t;
 
 namespace fmt
 {
@@ -105,7 +106,16 @@ inline std::string fromFile(const std::string &fileName)
 
 inline s64 AdventStoi(std::string const & s)
 {
-    return std::stoll(s);
+    try
+    {
+        return std::stoll(s);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        throw;
+    }
+    
 }
 
 #endif //_ADVENTUTIL__H
